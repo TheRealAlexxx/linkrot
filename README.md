@@ -3,6 +3,8 @@
 Find broken relative links and anchors in your Markdown files. Fully offline,
 zero dependencies.
 
+![linkrot output](screenshot.png)
+
 ```
 $ npx github:TheRealAlexxx/linkrot .
 docs/guide.md:14  [api.md#options]  no heading matches #options
