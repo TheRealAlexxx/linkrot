@@ -1,0 +1,9 @@
+{
+  "name": "linkrot",
+  "version": "0.1.0",
+  "description": "Find broken relative links and anchors in your Markdown files. Fully offline, zero dependencies.",
+  "bin": { "linkrot": "linkrot.js" },
+  "scripts": { "test": "node --test" },
+  "license": "MIT",
+  "files": ["linkrot.js", "md.js"]
+}
