@@ -50,10 +50,13 @@ function checkLink(fromFile, target, root) {
   return null;
 }
 
-function scan(dir) {
-  const root = path.resolve(dir);
+function scan(target) {
+  const abs = path.resolve(target);
+  const isDir = fs.statSync(abs).isDirectory();
+  const root = isDir ? abs : path.dirname(abs);
+  const files = isDir ? mdFiles(root, root) : [abs];
   const problems = [];
-  for (const f of mdFiles(root, root)) {
+  for (const f of files) {
     const text = stripFences(fs.readFileSync(f, 'utf8'));
     for (const l of links(text)) {
       const p = checkLink(f, l.target, root);
@@ -63,11 +66,40 @@ function scan(dir) {
   return problems;
 }
 
+const VERSION = require('./package.json').version;
+
+const USAGE = `Usage: linkrot [path] [--json]
+
+Find broken relative links and anchors in Markdown files. Fully offline.
+
+Arguments:
+  path             directory to scan, or one .md/.mdx file (default: current directory)
+
+Options:
+  --json           machine-readable output
+  -h, --help       show this help
+  --version        show the version
+
+Exit codes: 0 = no broken links, 1 = broken links found, 2 = usage error.`;
+
 function main(argv) {
-  const json = argv.includes('--json');
-  const dir = argv.find((a) => !a.startsWith('--')) || '.';
-  if (!fs.existsSync(dir)) { console.error('no such directory: ' + dir); return 2; }
-  const problems = scan(dir);
+  let json = false;
+  let target = null;
+  for (const a of argv) {
+    if (a === '-h' || a === '--help') { console.log(USAGE); return 0; }
+    if (a === '--version') { console.log('linkrot ' + VERSION); return 0; }
+    if (a === '--json') { json = true; continue; }
+    if (a.startsWith('-')) { console.error('unknown option: ' + a + ' (try --help)'); return 2; }
+    if (target !== null) { console.error('unexpected extra argument: ' + a); return 2; }
+    target = a;
+  }
+  target = target || '.';
+  if (!fs.existsSync(target)) { console.error('no such file or directory: ' + target); return 2; }
+  if (!fs.statSync(target).isDirectory() && !/\.mdx?$/i.test(target)) {
+    console.error('not a markdown file: ' + target);
+    return 2;
+  }
+  const problems = scan(target);
   if (json) { console.log(JSON.stringify(problems, null, 2)); return problems.length ? 1 : 0; }
   if (!problems.length) { console.log('no broken links'); return 0; }
   for (const p of problems) console.log(p.file + ':' + p.line + '  [' + p.target + ']  ' + p.reason);

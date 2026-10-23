@@ -66,6 +66,29 @@ test('CLI exit codes and json', () => {
   assert.strictEqual(spawnSync('node', [bin, path.join(bad, 'nope')]).status, 2);
 });
 
+test('CLI argument handling and single-file input', () => {
+  const bin = path.join(__dirname, 'linkrot.js');
+  const help = spawnSync('node', [bin, '--help'], { encoding: 'utf8' });
+  assert.strictEqual(help.status, 0);
+  assert.match(help.stdout, /Usage: linkrot/);
+  const ver = spawnSync('node', [bin, '--version'], { encoding: 'utf8' });
+  assert.strictEqual(ver.status, 0);
+  assert.match(ver.stdout, /^linkrot \d+\.\d+\.\d+/);
+  const bogus = spawnSync('node', [bin, '--bogus'], { encoding: 'utf8' });
+  assert.strictEqual(bogus.status, 2);
+  assert.match(bogus.stderr, /unknown option: --bogus/);
+  const notMd = project({ 'data.txt': 'hello' });
+  const notMdRun = spawnSync('node', [bin, path.join(notMd, 'data.txt')], { encoding: 'utf8' });
+  assert.strictEqual(notMdRun.status, 2);
+  assert.match(notMdRun.stderr, /not a markdown file/);
+  const proj = project({ 'README.md': '# README\n\nSee [gone](missing.md).\n', 'docs/guide.md': 'Back [home](../README.md#readme).\n' });
+  const oneFile = spawnSync('node', [bin, path.join(proj, 'README.md')], { encoding: 'utf8' });
+  assert.strictEqual(oneFile.status, 1);
+  assert.match(oneFile.stdout, /README\.md:3 {2}\[missing\.md\]/);
+  assert.doesNotMatch(oneFile.stdout, /guide\.md/);
+  const cleanFile = spawnSync('node', [bin, path.join(proj, 'docs/guide.md')], { encoding: 'utf8' });
+  assert.strictEqual(cleanFile.status, 0);
+});
 test('malformed percent-encoding is reported, not thrown', () => {
   const bin = path.join(__dirname, 'linkrot.js');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'linkrot-'));
