@@ -97,3 +97,18 @@ test('malformed percent-encoding is reported, not thrown', () => {
   assert.notEqual(r.status, 2);
   assert.match(r.stdout + r.stderr, /malformed percent-encoding/);
 });
+
+test('angle-bracket link destinations are checked', () => {
+  const found = links('[d](<sp ace.md>) and [e](plain.md)');
+  assert.deepStrictEqual(found.map((l) => l.target), ['sp ace.md', 'plain.md']);
+  const dir = project({ 'a.md': '[d](<sp ace.md>)\n' });
+  const bin = path.join(__dirname, 'linkrot.js');
+  const r = spawnSync(process.execPath, [bin, dir], { encoding: 'utf8' });
+  assert.strictEqual(r.status, 1);
+  assert.match(r.stdout, /no such file: sp ace\.md/);
+});
+
+test('angle-bracket link targets may contain spaces (QA unit test)', () => {
+  const text = '[a](<sp ace.md>) [b](<x.md> "title") [c](plain.md)';
+  assert.deepStrictEqual(links(text).map((l) => l.target), ['sp ace.md', 'x.md', 'plain.md']);
+});

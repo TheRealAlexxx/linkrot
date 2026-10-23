@@ -11,15 +11,17 @@ function stripFences(text) {
   }, { open: false, lines: [] }).lines.join('\n');
 }
 
-// Inline links [text](target "title"). Reference-style links are not handled.
+// Inline links [text](target "title"), including angle-bracket destinations
+// [text](<target with spaces>) per CommonMark. Reference-style links are not
+// handled.
 function links(text) {
   const out = [];
-  const re = /\[([^\]]*)\]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)/g;
+  const re = /\[([^\]]*)\]\((?:<([^>\n]*)>|([^)\s]+))(?:\s+["'][^"']*["'])?\)/g;
   let m, line = 1, last = 0;
   while ((m = re.exec(text))) {
     line += (text.slice(last, m.index).match(/\n/g) || []).length;
     last = m.index;
-    out.push({ text: m[1], target: m[2], line });
+    out.push({ text: m[1], target: m[2] !== undefined ? m[2] : m[3], line });
   }
   return out;
 }
