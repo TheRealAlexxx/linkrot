@@ -23,8 +23,13 @@ function mdFiles(dir, root) {
 function checkLink(fromFile, target, root) {
   if (/^(https?:)?\/\//i.test(target) || /^(mailto:|tel:|data:|javascript:)/i.test(target)) return null;
   const [rawPath, rawAnchor] = target.split('#');
-  const anchor = rawAnchor === undefined ? null : decodeURIComponent(rawAnchor);
-  const rel = decodeURIComponent(rawPath);
+  let anchor, rel;
+  try {
+    anchor = rawAnchor === undefined ? null : decodeURIComponent(rawAnchor);
+    rel = decodeURIComponent(rawPath);
+  } catch (e) {
+    return 'malformed percent-encoding in link: ' + target;
+  }
   let file = fromFile;
   if (rel) {
     file = path.resolve(path.dirname(fromFile), rel);

@@ -65,3 +65,12 @@ test('CLI exit codes and json', () => {
   assert.strictEqual(JSON.parse(spawnSync('node', [bin, bad, '--json'], { encoding: 'utf8' }).stdout)[0].target, 'b.md');
   assert.strictEqual(spawnSync('node', [bin, path.join(bad, 'nope')]).status, 2);
 });
+
+test('malformed percent-encoding is reported, not thrown', () => {
+  const bin = path.join(__dirname, 'linkrot.js');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'linkrot-'));
+  fs.writeFileSync(path.join(dir, 'a.md'), '[bad](%zz.md)\n');
+  const r = spawnSync(process.execPath, [bin, dir], { encoding: 'utf8' });
+  assert.notEqual(r.status, 2);
+  assert.match(r.stdout + r.stderr, /malformed percent-encoding/);
+});
